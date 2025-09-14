@@ -3,7 +3,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../db';
-
+import jwt from 'jsonwebtoken'
 const router = Router();
 
 // POST /api/users/register - 用户注册接口
