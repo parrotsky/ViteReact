@@ -41,4 +41,50 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/users/login - User Login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  try {
+    // 1. Find the user by email
+    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials' }); // 401 Unauthorized
+    }
+    const user = userResult.rows[0];
+
+    // 2. Compare the provided password with the stored hash
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 3. Create a JWT payload
+    const payload = {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    };
+
+    // 4. Sign the token and send it to the user
+    // Make sure to create a JWT_SECRET in your .env file!
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET || 'your_default_secret_key',
+      { expiresIn: '1h' }, // Token expires in 1 hour
+      (err, token) => {
+        if (err) throw err;
+        res.json({ token });
+      }
+    );
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 export default router;
